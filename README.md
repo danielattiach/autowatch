@@ -5,15 +5,15 @@
     source venv/bin/activate
     pip install -r requirements.txt
 ### .env example:
-    COMPANY_NUMBER = 123
-    EMPLOYEE_NUMBER = 10
-    MY_EMPLOYEE_NUMBER = 10
-    PASSWORD = whatever
-    START_MONTH = 1
-    END_MONTH = 2
-    START_TIME = 0800
-    END_TIME = 1700
-    MAX_DATE = 10
+    COMPANY_NUMBER=123
+    EMPLOYEE_NUMBER=10
+    MY_EMPLOYEE_NUMBER=10
+    PASSWORD=whatever
+    START_MONTH=1
+    END_MONTH=2
+    START_TIME=0800
+    END_TIME=1700
+    MAX_DATE=10
 ### Information about environment variables
 + MY_EMPLOYEE_NUMBER - your own employee number, a safety measure for the case where EMPLOYEE_NUMBER is different because you filled hours for a colleague.
 + START_MONTH - the month from which we start auto filling (default is last month)
