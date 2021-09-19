@@ -7,6 +7,7 @@ from enum import Enum, auto
 from dataclasses import dataclass
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -52,6 +53,13 @@ class AutoWatch:
             if answer != 'y':
                 exit()
 
+    def approve_reminder_popup(self):
+        wait = WebDriverWait(self.driver, 3)
+        try:
+            wait.until(element_to_be_clickable((By.CSS_SELECTOR, '[id="jqi_state0_buttonקראתי"]'))).click()
+        except TimeoutException:
+            pass
+
     def handle_month(self, month: Month):
         month_value = month.value or 12
         year = self.this_year
@@ -82,6 +90,7 @@ class AutoWatch:
         employee_number.send_keys(self.employee_number)
         password.send_keys(self.password)
         password.send_keys(Keys.RETURN)
+        self.approve_reminder_popup()
         self.fill_hours()
 
     def fill_hours(self):
@@ -118,5 +127,6 @@ class AutoWatch:
         self.driver.find_element_by_css_selector('input[src="/images/update.jpg"]').click()
 
 
-autowatch = AutoWatch()
-autowatch.start()
+if __name__ == '__main__':
+    autowatch = AutoWatch()
+    autowatch.start()
