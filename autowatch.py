@@ -1,6 +1,9 @@
 import re
 import logging
+from time import sleep
 from datetime import datetime, date
+from random import uniform
+
 from dotenv import load_dotenv
 from os import path, environ
 from enum import Enum, auto
@@ -11,7 +14,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.expected_conditions import element_to_be_clickable
+from selenium.webdriver.support.expected_conditions import element_to_be_clickable, invisibility_of_element_located
 
 
 class MonthType(Enum):
@@ -36,18 +39,18 @@ class AutoWatch:
         self.password = environ.get('PASSWORD')
         self.this_year = date.today().year
         self.start_month = Month(
-            value=int(environ.get('START_MONTH', date.today().month - 1)),
+            value=date.today().month - 1,
             type=MonthType.START,
         )
         self.end_month = Month(
-            value=int(environ.get('END_MONTH', date.today().month)),
-            type=MonthType.END
+            value=date.today().month,
+            type=MonthType.END,
         )
         self.start_time = environ.get('START_TIME', '0900')
         self.end_time = environ.get('END_TIME', '1800')
-        self.max_date = int(environ.get('MAX_DATE', 20))
+        self.max_date = 20
         self.driver = webdriver.Chrome()
-        self.wait = WebDriverWait(self.driver, 10)
+        self.wait = WebDriverWait(self.driver, 5)
         if self.employee_number != self.my_employee_number:
             answer = input('Employee number is not yours, continue? [y/n]: ')
             if answer != 'y':
@@ -66,6 +69,7 @@ class AutoWatch:
         if month.type == MonthType.START and month_value == 12:
             year = self.this_year - 1
 
+        sleep(uniform(1, 2))
         self.driver.find_element_by_css_selector(f'[name="year"] option[value="{year}"]').click()
         self.driver.find_element_by_css_selector(f'[name="month"] option[value="{month_value}"]').click()
 
@@ -82,24 +86,27 @@ class AutoWatch:
         return self.driver.window_handles[-1]
 
     def start(self):
-        self.driver.get('https://checkin.timewatch.co.il/punch/punch.php')
-        company_number = self.driver.find_element_by_id('compKeyboard')
-        employee_number = self.driver.find_element_by_id('nameKeyboard')
-        password = self.driver.find_element_by_id('pwKeyboard')
+        self.driver.get('https://c.timewatch.co.il/punch/punch.php')
+        self.login()
+        self.fill_hours()
+
+    def login(self):
+        company_number = self.driver.find_element_by_id('login-comp-input')
+        employee_number = self.driver.find_element_by_id('login-name-input')
+        password = self.driver.find_element_by_id('login-pw-input')
         company_number.send_keys(self.company_number)
         employee_number.send_keys(self.employee_number)
         password.send_keys(self.password)
         password.send_keys(Keys.RETURN)
         self.approve_reminder_popup()
-        self.fill_hours()
+        self.wait.until(element_to_be_clickable((By.CSS_SELECTOR, '.edit-info .new-link'))).click()
 
     def fill_hours(self):
-        self.wait.until(element_to_be_clickable((By.CSS_SELECTOR, 'a[href^="/punch/editwh.php"]'))).click()
         for month in (self.start_month, self.end_month):
             self.handle_month(month)
-            self.wait.until(element_to_be_clickable((By.CSS_SELECTOR, 'table table')))
-            tds = (self.driver.find_elements_by_css_selector('table table')[-1]
-                   .find_elements_by_css_selector('td[bgcolor="red"]'))
+            self.wait.until(element_to_be_clickable((By.CSS_SELECTOR, '.table-responsive')))
+            tds = (self.driver.find_element_by_css_selector('.table-responsive')
+                   .find_elements_by_css_selector('td[style]'))
             while tds:
                 td = tds[0]
                 row = td.find_element_by_xpath('..')
@@ -111,22 +118,25 @@ class AutoWatch:
                 ):
                     break
                 self.fill_hours_for_row(td)
-                self.driver.switch_to.window(self.driver.window_handles[0])
                 self.driver.refresh()
-                tds = (self.driver.find_elements_by_css_selector('table table')[-1]
-                       .find_elements_by_css_selector('td[bgcolor="red"]'))
+                table = self.wait.until(element_to_be_clickable((By.CSS_SELECTOR, '.table-responsive')))
+                tds = table.find_elements_by_css_selector('td[style]')
         self.close_browser()
 
-    def fill_hours_for_row(self, row):
-        current_window_handles = len(self.driver.window_handles)
-        row.click()
-        new_window_handle = self.wait_for_window_open(current_window_handles)
-        self.driver.switch_to.window(new_window_handle)
-        self.driver.find_element_by_xpath('//*[@id="ehh0"]').send_keys(self.start_time)
-        self.driver.find_element_by_xpath('//*[@id="xhh0"]').send_keys(self.end_time)
-        self.driver.find_element_by_css_selector('input[src="/images/update.jpg"]').click()
+    def fill_hours_for_row(self, td):
+        td.click()
+        sleep(uniform(0, 2))
+        self.wait.until(element_to_be_clickable((By.CSS_SELECTOR, '.modal-popup-body .portlet-body')))
+        self.driver.find_element_by_xpath('//*[@id="ehh0"]').send_keys(f'{self.start_time}{self.end_time}')
+        self.driver.find_element_by_css_selector('.modal-popup-btn-confirm').click()
+        self.wait.until(invisibility_of_element_located((By.CSS_SELECTOR, '.modal-popup-body')))
+        sleep(uniform(1, 3))
 
 
 if __name__ == '__main__':
     autowatch = AutoWatch()
-    autowatch.start()
+    try:
+        autowatch.start()
+    except:  # noqa
+        print('Something went wrong, closing browser')
+        autowatch.close_browser()
