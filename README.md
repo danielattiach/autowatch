@@ -8,9 +8,11 @@
     PASSWORD=whatever
     START_TIME=0900
     END_TIME=1800
+    AUTOMATIC_TIME_FRAME=True
 ### Information about environment variables
 + MY_EMPLOYEE_NUMBER - your own employee number, a safety measure for the case where EMPLOYEE_NUMBER is different because you filled hours for a colleague.
 + START_TIME - the time you came to the office (default is 09:00)
 + END_TIME - the time you left the office (default is 18:00)
++ AUTOMATIC_TIME_FRAME - if True, it will fill in 9 hours from START_TIME (unless it's a half day, then it'll fill in 5 hours). If False, it'll just use END_TIME
 ### Execution:
     python autowatch.py
