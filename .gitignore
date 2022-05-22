@@ -3,3 +3,4 @@
 bot.log
 venv/
 .env
+*.egg-info

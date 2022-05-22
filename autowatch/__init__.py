@@ -8,8 +8,8 @@ from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
-from config import Config
-from data import HEADERS, DATA
+from autowatch.config import Config
+from autowatch.data import HEADERS, DATA
 
 
 @dataclass
@@ -19,16 +19,17 @@ class Row:
     current_date: date
 
 
-class App:
+class AutoWatch:
     def __init__(self):
         self.config = Config()
         self.session = requests.Session()
         self.login_soup = None
         self.punch_page = None
-        self.punch_page_month = None
-        self.punch_page_year = None
+        self.punch_page_month = self.config.fill_month
+        self.punch_page_year = self.config.fill_year
         self.ixemplee = None
         self.rows = []
+        self.skip_dates = set()
 
     def login(self):
         response = self.session.post('https://c.timewatch.co.il/user/validate_user.php', data={
@@ -45,8 +46,8 @@ class App:
         )
         parsed_url = urlparse(link.get('href'))
         params = parse_qs(parsed_url.query)
-        self.punch_page_year = params['y'][0]
-        self.punch_page_month = params['m'][0]
+        self.punch_page_year = self.punch_page_year or params['y'][0]
+        self.punch_page_month = self.punch_page_month or params['m'][0]
         self.ixemplee = params['ee'][0] if params.get('ee') else ''
         HEADERS['referer'] = (
             'https://c.timewatch.co.il/punch/editwh.php'
@@ -87,6 +88,8 @@ class App:
                 current_date = datetime.strptime(
                     re.search(r'(\d{2}-\d{2}-\d{4})', row.text).group(1), '%d-%m-%Y'
                 ).date()
+                if current_date.strftime(self.config.date_format) in self.skip_dates:
+                    continue
                 self.rows.append(Row(
                     html=row,
                     current_date=current_date,
@@ -94,15 +97,20 @@ class App:
                 ))
 
     def submit_hours(self):
+        if DATA['d'] in self.skip_dates:
+            return
         # TimeWatch is a hella weird, if you do things too fast it just doesn't process some dates
         print(f'Trying to set {DATA["d"]} to {DATA["ehh0"]}:{DATA["emm0"]} - {DATA["xhh0"]}:{DATA["xmm0"]}')
         time.sleep(0.25)
-        self.session.post(
+        res = self.session.post(
             'https://c.timewatch.co.il/punch/editwh3.php',
             cookies=self.config.cookies,
             headers=HEADERS,
             data=DATA,
         )
+        if res.text == 'limited punch':
+            print(f'Unable to set {DATA["d"]}. Probably a bug on TimeWatch, please verify manually')
+            self.skip_dates.add(DATA['d'])
 
     def submit_hours_for_missing_dates(self, retries=0):
         if retries > 10:
@@ -137,8 +145,3 @@ class App:
                 return
 
         self.submit_hours_for_missing_dates()
-
-
-if __name__ == '__main__':
-    app = App()
-    app.play()

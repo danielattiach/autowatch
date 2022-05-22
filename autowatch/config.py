@@ -15,15 +15,18 @@ class Config:
     end_time_hour = NotImplemented
     end_time_minute = NotImplemented
     automatic_time_frame = NotImplemented
+    fill_year = NotImplemented
+    fill_month = NotImplemented
     cookies = NotImplemented
 
     def __init__(self):
         load_dotenv()
         self.cookies = {}
-        self.today = date.today()
         self.company_number = getenv('COMPANY_NUMBER')
         self.employee_number = getenv('EMPLOYEE_NUMBER')
         self.my_employee_number = getenv('MY_EMPLOYEE_NUMBER')
+        self.fill_year = getenv('FILL_YEAR')
+        self.fill_month = getenv('FILL_MONTH')
         self.password = getenv('PASSWORD')
         self.automatic_time_frame = getenv('AUTOMATIC_TIME_FRAME', 'True').lower() == 'true'
         self.start_time_hour, self.start_time_minute = [
