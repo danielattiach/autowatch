@@ -1,12 +1,19 @@
+import pathlib
+
 from setuptools import setup, find_packages
 
 
+README = (pathlib.Path(__file__).parent / 'README.md').read_text()
+
 setup(
-    name='autowatch',
+    name='auto-timewatch',
     version='2.0',
     description='Automatic hour fill for TimeWatch',
     url='https://github.com/danielattiach/autowatch',
+    long_description=README,
+    long_description_content_type='text/markdown',
     author='Daniel Attiach',
+    license='MIT',
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
