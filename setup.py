@@ -13,6 +13,6 @@ setup(
     install_requires=[
         'beautifulsoup4==4.11.1',
         'python-dotenv==0.10.5',
-        'requests==2.25.1',
+        'requests==2.27.1',
     ],
 )
